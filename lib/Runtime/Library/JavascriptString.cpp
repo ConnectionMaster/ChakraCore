@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -204,7 +205,7 @@ namespace Js
     {
         if (!IsValidCharCount(newLength))
         {
-            JavascriptExceptionOperators::ThrowOutOfMemory(this->GetScriptContext());
+            JavascriptError::ThrowRangeError(this->GetScriptContext(), JSERR_OutOfBoundString);
         }
         m_charLength = newLength;
     }
@@ -694,6 +695,70 @@ case_2:
         stringBuffer[0] = *pstLeft->GetString();
         stringBuffer[1] = *pstRight->GetString();
         return builder.ToString();
+    }
+
+
+    // Relative indexing proposal 
+    // String.prototype.at(index): https://tc39.es/proposal-relative-indexing-method/#sec-string.prototype.at
+    // Spec: https://tc39.es/proposal-relative-indexing-method
+    // Github: https://github.com/tc39/proposal-relative-indexing-method
+    Var JavascriptString::EntryAt(RecyclableObject* function, CallInfo callInfo, ...) {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        JavascriptString * pThis = nullptr;
+
+        // 1. Let O be ? RequireObjectCoercible(this value).
+        // 2. Let S be ? ToString(O).
+        JS_REENTRANT(jsReentLock, GetThisStringArgument(args, scriptContext, _u("String.prototype.at"), &pThis));
+
+        // 3. Let len be the length of S.
+        charcount_t len = pThis->GetLength();
+
+        // 4. Let relativeIndex be ? ToInteger(index).
+        int64_t relativeIndex = 0;
+
+        if (args.Info.Count > 1)
+        {
+            JS_REENTRANT(jsReentLock, relativeIndex = NumberUtilities::TryToInt64(JavascriptConversion::ToInteger(args[1], scriptContext)));
+        }
+
+        // 5. If relativeIndex >= 0, then
+        //     a. Let k be relativeIndex.
+        // 6. Else,
+        //     a. Let k be len + relativeIndex.
+        int64_t k = relativeIndex;
+        
+        if (relativeIndex < 0)
+        {
+            k += len;
+        }
+        
+        // 7. If k < 0 or k >= len, then return undefined.
+        if (k < 0 || k >= (int64_t)len)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        
+        Var value;
+        // 8. Return the String value consisting of only the code unit at position k in S.
+        if (pThis->GetItemAt((charcount_t)k, &value))
+        {
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+            value = BreakSpeculation(value);
+#endif
+            return value;
+        }
+        else
+        {
+            // Yes, i except this to be
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
     }
 
     Var JavascriptString::EntryCharAt(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2509,9 +2574,18 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[1]))
+            if (TaggedInt::Is(args[1]))
             {
-                double countDbl = JavascriptConversion::ToInteger(args[1], scriptContext);
+                int32 signedCount = TaggedInt::ToInt32(args[1]);
+                if (signedCount < 0)
+                {
+                    JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("String.prototype.repeat"));
+                }
+                count = (uint32) signedCount;
+            }
+            else if (!JavascriptOperators::IsUndefinedObject(args[1]))
+            {
+                double countDbl = JavascriptConversion::ToInteger_Full(args[1], scriptContext);
                 if (JavascriptNumber::IsPosInf(countDbl) || countDbl < 0.0)
                 {
                     JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("String.prototype.repeat"));
@@ -2542,7 +2616,14 @@ case_2:
         const char16* currentRawString = currentString->GetString();
         charcount_t currentLength = currentString->GetLength();
 
-        charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
+        charcount_t finalBufferCount = 0;
+        bool hasOverflow = UInt32Math::Mul(count, currentLength, &finalBufferCount);
+        if (hasOverflow || !IsValidCharCount(finalBufferCount))
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
+        }
+        finalBufferCount = finalBufferCount + 1;
+
         char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
 
         if (currentLength == 1)

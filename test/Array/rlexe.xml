@@ -8,8 +8,26 @@
   </test>
   <test>
     <default>
+      <files>array_at.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>array_flat.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>array_findlast.js</files>
+      <compile-flags>-ESArrayFindFromLast -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>array_findlastindex.js</files>
+      <compile-flags>-ESArrayFindFromLast -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -238,7 +256,11 @@
     <default>
       <files>push3.js</files>
       <compile-flags>-off:nativearray -ForceES5Array</compile-flags>
-      <baseline>push3.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>push4_traps.js</files>
     </default>
   </test>
   <test>

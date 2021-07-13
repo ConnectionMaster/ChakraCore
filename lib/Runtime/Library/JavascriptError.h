@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -41,7 +42,7 @@ namespace Js
 
         void SetNotEnumerable(PropertyId propertyId);
 
-        static Var NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message);
+        static Var NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message, Var options);
         class EntryInfo
         {
         public:
@@ -52,6 +53,7 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
+            static FunctionInfo NewAggregateErrorInstance;
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
@@ -143,6 +145,11 @@ namespace Js
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);
         static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName = nullptr);
         static JavascriptError* CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse, const WCHAR * sourceUrl = nullptr);
+
+        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
+
+        static void SetErrorsList(JavascriptError* pError, SList<Var, Recycler>* errorsList, ScriptContext* scriptContext);
+        static void SetErrorsList(JavascriptError* pError, JavascriptArray* errors, ScriptContext* scriptContext);
 
     private:
 

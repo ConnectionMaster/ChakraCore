@@ -39,6 +39,7 @@
         "#__proto__": {
           "#__proto__": "Object {...}",
           "constructor": "function <large string>",
+          "at": "function <large string>",
           "push": "function <large string>",
           "concat": "function <large string>",
           "join": "function <large string>",
@@ -98,7 +99,6 @@
         },
         "[4]": {
           "#__proto__": "Object {...}",
-          "description": "string ErrorObj",
           "message": "string ErrorObj",
           "stack": "string <large string>",
           "[105]": "string 105"

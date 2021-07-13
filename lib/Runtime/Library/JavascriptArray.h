@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -233,6 +234,7 @@ namespace Js
         {
         public:
             static FunctionInfo NewInstance;
+            static FunctionInfo At;
             static FunctionInfo Concat;
             static FunctionInfo Every;
             static FunctionInfo Filter;
@@ -258,6 +260,8 @@ namespace Js
             static FunctionInfo IsArray;
             static FunctionInfo Find;
             static FunctionInfo FindIndex;
+            static FunctionInfo FindLast;
+            static FunctionInfo FindLastIndex;
             static FunctionInfo Entries;
             static FunctionInfo Keys;
             static FunctionInfo Values;
@@ -271,6 +275,7 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
         static Var ProfiledNewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAt(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryConcat(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEvery(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFilter(RecyclableObject* function, CallInfo callInfo, ...);
@@ -296,6 +301,8 @@ namespace Js
         static Var EntryIsArray(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFind(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFindIndex(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFindLast(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFindLastIndex(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEntries(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryKeys(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValues(RecyclableObject* function, CallInfo callInfo, ...);
@@ -307,8 +314,8 @@ namespace Js
 
         static Var Push(ScriptContext * scriptContext, Var object, Var value);
         static Var EntryPushNonJavascriptArray(ScriptContext * scriptContext, Var * args, uint argCount);
-        static Var EntryPushJavascriptArray(ScriptContext * scriptContext, Var * args, uint argCount);
-        static Var EntryPushJavascriptArrayNoFastPath(ScriptContext * scriptContext, Var * args, uint argCount);
+        static Var EntryPushJavascriptArray(ScriptContext * scriptContext, JavascriptArray * arr, Var * args, uint argCount);
+        static Var EntryPushJavascriptArrayNoFastPath(ScriptContext * scriptContext, JavascriptArray * arr, Var * args, uint argCount);
 
         static Var Pop(ScriptContext * scriptContext, Var object);
 
@@ -503,6 +510,8 @@ namespace Js
         static Var SliceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         static Var SliceObjectHelper(RecyclableObject* obj, uint32 sliceStart, uint32 start, JavascriptArray* newArr, RecyclableObject* newObj, uint32 newLen, ScriptContext* scriptContext);
         template <typename T = uint32>
+        static Var AtHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T = uint32>
         static Var EveryHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var EveryObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
@@ -510,9 +519,9 @@ namespace Js
         static Var SomeHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var SomeObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
-        template <bool findIndex>
+        template <bool findIndex, bool reversed>
         static Var FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
-        template <bool findIndex>
+        template <bool findIndex, bool reversed>
         static Var FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
@@ -555,6 +564,10 @@ namespace Js
         bool HasSegmentMap() const;
         template<typename T>
         static void CopyHeadIfInlinedHeadSegment(JavascriptArray *array, Recycler *recycler);
+
+        // This helper function is mainly used as a precheck before going to the FillFromPrototype code path.
+        // Proxy and CustomExternalObject in the prototype chain will be returned as if ES5Array is there.
+        static bool HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain = false);
 
     private:
         void SetSegmentMap(SegmentBTreeRoot * segmentMap);
@@ -640,10 +653,6 @@ namespace Js
 
         template <typename Fn>
         static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);
-
-        // This helper function is mainly used as a precheck before going to the FillFromPrototype code path.
-        // Proxy and CustomExternalObject in the prototype chain will be returned as if ES5Array is there.
-        static bool HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain = false);
 
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }

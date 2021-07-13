@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -307,6 +308,7 @@ namespace Js
         Field(DynamicType *) syntaxErrorType;
         Field(DynamicType *) typeErrorType;
         Field(DynamicType *) uriErrorType;
+        Field(DynamicType *) aggregateErrorType;
         Field(DynamicType *) webAssemblyCompileErrorType;
         Field(DynamicType *) webAssemblyRuntimeErrorType;
         Field(DynamicType *) webAssemblyLinkErrorType;
@@ -627,6 +629,9 @@ namespace Js
         DynamicObject* GetWebAssemblyLinkErrorPrototype() const { return webAssemblyLinkErrorPrototype; }
         DynamicObject* GetWebAssemblyLinkErrorConstructor() const { return webAssemblyLinkErrorConstructor; }
 
+        DynamicObject* GetAsyncGeneratorPrototype() const { return asyncGeneratorPrototype; }
+        DynamicObject* GetGeneratorPrototype() const { return generatorPrototype; }
+
         DynamicObject* GetChakraLib() const { return chakraLibraryObject; }
 
 #if ENABLE_TTD
@@ -692,13 +697,9 @@ namespace Js
 #endif
 
 #ifdef ENABLE_JS_BUILTINS
-        template <class Fn>
-        void InitializeBuiltInForPrototypes(Fn fn);
-
-        void EnsureBuiltInEngineIsReady();
-
+        void EnsureArrayBuiltInsAreReady();
+        void EnsureMathBuiltInsAreReady();
         static bool __cdecl InitializeChakraLibraryObject(DynamicObject* chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeBuiltInObject(DynamicObject* builtInEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
 #endif
 
@@ -725,6 +726,7 @@ namespace Js
         DynamicType * GetSyntaxErrorType() const { return syntaxErrorType; }
         DynamicType * GetTypeErrorType() const { return typeErrorType; }
         DynamicType * GetURIErrorType() const { return uriErrorType; }
+        DynamicType * GetAggregateErrorType() const { return aggregateErrorType; }
         DynamicType * GetWebAssemblyCompileErrorType() const { return webAssemblyCompileErrorType; }
         DynamicType * GetWebAssemblyRuntimeErrorType() const { return webAssemblyRuntimeErrorType; }
         DynamicType * GetWebAssemblyLinkErrorType() const { return webAssemblyLinkErrorType; }
@@ -923,6 +925,7 @@ namespace Js
         JavascriptError* CreateSyntaxError();
         JavascriptError* CreateTypeError();
         JavascriptError* CreateURIError();
+        JavascriptError* CreateAggregateError();
         JavascriptError* CreateStackOverflowError();
         JavascriptError* CreateOutOfMemoryError();
         JavascriptError* CreateWebAssemblyCompileError();
@@ -1030,6 +1033,7 @@ namespace Js
         JavascriptPromiseReactionTaskFunction* CreatePromiseReactionTaskFunction(JavascriptMethod entryPoint, JavascriptPromiseReaction* reaction, Var argument);
         JavascriptPromiseResolveThenableTaskFunction* CreatePromiseResolveThenableTaskFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, RecyclableObject* thenable, RecyclableObject* thenFunction);
         JavascriptPromiseAllResolveElementFunction* CreatePromiseAllResolveElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements);
+        JavascriptPromiseAnyRejectElementFunction* CreatePromiseAnyRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* errors, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper);
         JavascriptPromiseAllSettledResolveOrRejectElementFunction* CreatePromiseAllSettledResolveOrRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper, bool isRejecting);
         JavascriptPromiseThenFinallyFunction* CreatePromiseThenFinallyFunction(JavascriptMethod entryPoint, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow);
         JavascriptPromiseThunkFinallyFunction* CreatePromiseThunkFinallyFunction(JavascriptMethod entryPoint, Var value, bool shouldThrow);
@@ -1227,6 +1231,7 @@ namespace Js
         STANDARD_INIT(SyntaxError);
         STANDARD_INIT(TypeError);
         STANDARD_INIT(URIError);
+        STANDARD_INIT(AggregateError);
         STANDARD_INIT(RuntimeError);
         STANDARD_INIT(TypedArray);
         STANDARD_INIT(Int8Array);
